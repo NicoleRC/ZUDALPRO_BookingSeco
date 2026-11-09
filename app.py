@@ -79,7 +79,7 @@ USUARIOS_AUTORIZADOS = ["lsuarez", "kmoreno"]
 es_autorizado = usuario_windows in USUARIOS_AUTORIZADOS
 
 # Menú lateral
-menu = st.sidebar.selectbox("Menú de Navegación", ["Hacer Booking", "Histórico / Reportes"])
+menu = st.sidebar.selectbox("Menú de Navegación", ["Booking", "Histórico"])
 
 # Opciones predefinidas
 FAMILIAS_DISPONIBLES = ["PROCURA", "VIVERES", "LIMPIEZA", "EMPAQUES"]
@@ -107,7 +107,7 @@ dias_map = {"Lunes": 0, "Martes": 1, "Miércoles": 2, "Jueves": 3, "Viernes": 4}
 # ---------------------------------------------------------
 # 2. VISTA: CALENDARIO VISUAL + FORMULARIO + EXCEL PROFESIONAL
 # ---------------------------------------------------------
-if menu == "Hacer Booking":
+if menu == "Booking":
   st.subheader(
       f"📅 Calendario Semanal de Operaciones ({semana_actual_str})"
   )

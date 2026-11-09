@@ -98,10 +98,10 @@ def cargar_proveedores():
 
 PROVEEDORES_DISPONIBLES = cargar_proveedores()
 
-# Calcular semana actual ISO (Ej: 2026-W45)
+# Calcular semana actual (Ej: 2026-SEM 45)
 ahora = datetime.now()
 ano, semana_num, _ = ahora.isocalendar()
-semana_actual_str = f"{ano}-W{semana_num:02d}"
+semana_actual_str = f"{ano}-SEM {semana_num:02d}"
 dias_map = {"Lunes": 0, "Martes": 1, "Miércoles": 2, "Jueves": 3, "Viernes": 4}
 
 # ---------------------------------------------------------

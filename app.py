@@ -1,4 +1,5 @@
 from datetime import datetime, time
+from streamlit_autorefresh import st_autorefresh
 import io
 import os
 import sqlite3
@@ -12,6 +13,9 @@ st.set_page_config(
     page_title="Booking ZUDALPRO - Almacén Seco", page_icon="📅", layout="wide"
 )
 
+# Refresco automático cada 5 segundos para sincronizar en tiempo real
+count = st_autorefresh(interval=5000, limit=None, key="frecuencia_refresco")
+
 # 1. Diccionario con los usuarios permitidos y sus respectivas contraseñas
 USUARIOS_CONTRASENAS = {
     "lsuarez": "ls30",
@@ -19,7 +23,7 @@ USUARIOS_CONTRASENAS = {
     "nramirez": "nr29",
     "durribarri": "du30",
     "fgonzalez": "fg10",
-    "krodriguez": "kr05",
+    "krodriguez": "r05",
     "cberroteran": "cb31",
     "icarrillo": "c",
 }
@@ -114,7 +118,7 @@ st.title("📅 Planificación de Compras Almacén Seco - ZUDALPRO")
 # Obtener usuario actual desde la sesión activa
 usuario_actual = st.session_state["usuario_actual"]
 
-# Permisos de almacén: lsuarez y kmoreno gestionan recepción y movimientos por llegada distinta
+# Permisos de almacén: lsuarez y kmoreno gestionan recepción y movimientos
 USUARIOS_AUTORIZADOS_ALMACEN = ["lsuarez", "kmoreno"]
 es_autorizado = usuario_actual in USUARIOS_AUTORIZADOS_ALMACEN
 
@@ -154,12 +158,12 @@ if menu == "Booking":
 
     if not es_autorizado:
         st.info(
-            f"👤 Usuario conectado: `{usuario_actual}` (Modo registro y consulta)"
+            f"🛒 Usuario conectado: `{usuario_actual}` (Perfil: **Compras** - Registro y gestión de bookings)"
         )
     else:
         st.success(
             f"🔐 Usuario autorizado con privilegios de almacén:"
-            f" `{usuario_actual}`"
+            f" `{usuario_actual}` (Perfil: **Almacén**)"
         )
 
     # Consultar registros activos de la semana actual
@@ -177,6 +181,48 @@ if menu == "Booking":
         params=(semana_actual_str,),
     )
     conn.close()
+
+    # --- BOTÓN MAESTRO DE DESCARGA DE TODA LA SEMANA (LUNES A VIERNES) ---
+    if not df_semana_actual.empty:
+        df_excel_semana_completa = df_semana_actual[[
+            "dia_asignado",
+            "familia",
+            "proveedor",
+            "producto",
+            "odc",
+            "observacion_compras",
+            "recepcion_almacen",
+            "observacion_almacen",
+        ]].copy()
+        
+        df_excel_semana_completa.columns = [
+            "DIA",
+            "FAMILIA",
+            "PROVEEDOR",
+            "PRODUCTO",
+            "OC",
+            "OBSERVACIONES - COMPRAS",
+            "RECEPCION ALMACEN",
+            "OBSERVACIONES - ALMACEN",
+        ]
+        
+        df_excel_semana_completa["RECEPCION ALMACEN"] = df_excel_semana_completa["RECEPCION ALMACEN"].apply(
+            lambda x: "SI" if x == 1 else "NO"
+        )
+
+        output_sem = io.BytesIO()
+        with pd.ExcelWriter(output_sem) as writer:
+            df_excel_semana_completa.to_excel(writer, index=False, sheet_name=f"Semana_{semana_actual_str}")
+        excel_bytes_sem = output_sem.getvalue()
+
+        st.download_button(
+            label=f"📥 Descargar Calendario Completo de la Semana ({semana_actual_str}) - Lunes a Viernes (Excel)",
+            data=excel_bytes_sem,
+            file_name=f"Calendario_Completo_{semana_actual_str}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            key="btn_descargar_semana_completa",
+        )
+        st.divider()
 
     cols = st.columns(5)
 
@@ -246,14 +292,11 @@ if menu == "Booking":
                         else ""
                     )
 
-                    # Verificar si fue movido por almacén buscando la etiqueta en las observaciones
                     fue_movido_almacen = "[MOVIDO POR ALMACÉN]" in obs_compras_actual
-
                     es_creador = str(row["usuario_windows"]).lower() == usuario_actual.lower()
                     puede_editar_almacen = es_autorizado or es_creador
 
                     with st.container(border=True):
-                        # Alerta visual en rojo si es fuera de tiempo o si fue movido por almacén con día distinto
                         if es_fuera_de_tiempo_grupo:
                             st.error(
                                 f"🚨 **FUERA DE TIEMPO**\n\n**{row['proveedor']}**\n*Prod:* {row['producto']}\n*OC:* `{row['odc']}`"
@@ -300,7 +343,7 @@ if menu == "Booking":
                             conn.close()
                             st.rerun()
 
-                        # Opción para mover de día (Permitida al Creador O al personal de Almacén)
+                        # Opción para mover de día
                         with st.expander("⚙️ Mover de día"):
                             if not (es_creador or es_autorizado):
                                 st.warning(
@@ -318,7 +361,6 @@ if menu == "Booking":
                                     conn = sqlite3.connect("bookings.db")
                                     cursor = conn.cursor()
 
-                                    # Generar traza clara indicando origen y destino
                                     if es_autorizado and not es_creador:
                                         aviso_nuevo = f"🔄 [MOVIDO POR ALMACÉN: {usuario_actual}] Reprogramado desde {dia_origen} hacia {nuevo_dia}"
                                     else:
@@ -338,7 +380,7 @@ if menu == "Booking":
                                     st.success(f"¡Movido de {dia_origen} a {nuevo_dia} con éxito!")
                                     st.rerun()
 
-                        # Opción para eliminar del Booking (Solo si es creador Y NO HA SIDO RECIBIDO)
+                        # Opción para eliminar del Booking
                         with st.expander("🗑️ Eliminar del Booking"):
                             if not es_creador:
                                 st.warning(
@@ -364,11 +406,10 @@ if menu == "Booking":
                             f"🕒 Reg: {row['fecha_registro']} | 👤 {row['usuario_windows']}"
                         )
 
-                # Procesar registros a tiempo
+                # Procesar registros a tiempo y tarde
                 for _, row in df_a_tiempo.iterrows():
                     renderizar_tarjeta(row, es_fuera_de_tiempo_grupo=False)
 
-                # Procesar registros fuera de tiempo
                 for _, row in df_tarde.iterrows():
                     renderizar_tarjeta(row, es_fuera_de_tiempo_grupo=True)
 
@@ -377,88 +418,91 @@ if menu == "Booking":
 
     st.divider()
 
-    # Formulario de Registro
+    # Formulario de Registro (Restringido para usuarios de Almacén)
     st.subheader("📝 Registrar Nueva Orden de Compra (Booking)")
 
-    col1, col2, col3 = st.columns(3)
+    if es_autorizado:
+        st.warning("🔒 **Acceso restringido:** Los usuarios con perfil de Almacén no pueden registrar nuevas órdenes de compra (bookings). Esta función está reservada exclusivamente para el departamento de Compras.")
+    else:
+        col1, col2, col3 = st.columns(3)
 
-    with col1:
-        dia_asignado = st.selectbox(
-            "Despacho Estimado (Día)", DIAS_SEMANA, key="form_dia"
-        )
-        familia = st.selectbox("Familia", FAMILIAS_DISPONIBLES, key="form_familia")
-
-        modo_proveedor = st.radio(
-            "Tipo de Proveedor",
-            ["Seleccionar de la lista", "Escribir nuevo proveedor"],
-            horizontal=True,
-            key="form_modo_prov",
-        )
-
-        if modo_proveedor == "Seleccionar de la lista":
-            proveedor = st.selectbox(
-                "Proveedor", [""] + PROVEEDORES_DISPONIBLES, key="form_prov_select"
+        with col1:
+            dia_asignado = st.selectbox(
+                "Despacho Estimado (Día)", DIAS_SEMANA, key="form_dia"
             )
-        else:
-            proveedor = st.text_input(
-                "Nombre del Proveedor (Manual)", key="form_prov_texto_libre"
+            familia = st.selectbox("Familia", FAMILIAS_DISPONIBLES, key="form_familia")
+
+            modo_proveedor = st.radio(
+                "Tipo de Proveedor",
+                ["Seleccionar de la lista", "Escribir nuevo proveedor"],
+                horizontal=True,
+                key="form_modo_prov",
             )
 
-    with col2:
-        producto = st.text_input("Producto", key="form_prod")
-        odc = st.text_input("Número de OC (Orden de Compra)", key="form_odc")
-
-    with col3:
-        observacion_compras = st.text_area("Observaciones - Compras", key="form_obs")
-
-    enviar = st.button("Guardar y Registrar Booking", key="btn_guardar_booking")
-
-    if enviar:
-        if not odc or not producto or not proveedor:
-            st.warning("⚠️ Por favor completa el Producto, la OC y el Proveedor.")
-        else:
-            fecha_registro_str = ahora.strftime("%Y-%m-%d %H:%M:%S")
-
-            dia_asignado_idx = dias_map.get(dia_asignado)
-            dia_actual_idx = ahora.weekday()
-            hora_actual = ahora.time()
-
-            es_mismo_dia = dia_asignado_idx == dia_actual_idx
-            es_despues_de_8am = hora_actual > time(8, 0)
-            fuera_de_tiempo = 1 if (es_mismo_dia and es_despues_de_8am) else 0
-
-            conn = sqlite3.connect("bookings.db")
-            cursor = conn.cursor()
-            cursor.execute(
-                """
-                    INSERT INTO historico_bookings 
-                    (fecha_registro, semana, dia_asignado, familia, proveedor, producto, odc, observacion_compras, usuario_windows, fuera_de_tiempo, eliminado)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
-                """,
-                (
-                    fecha_registro_str,
-                    semana_actual_str,
-                    dia_asignado,
-                    familia,
-                    proveedor,
-                    producto,
-                    odc,
-                    observacion_compras,
-                    usuario_actual,
-                    fuera_de_tiempo,
-                ),
-            )
-            conn.commit()
-            conn.close()
-
-            if fuera_de_tiempo:
-                st.warning(
-                    "⚠️ Guardado con éxito, pero marcado como **FUERA DE TIEMPO**"
-                    " (registrado después de las 8:00 AM del mismo día)."
+            if modo_proveedor == "Seleccionar de la lista":
+                proveedor = st.selectbox(
+                    "Proveedor", [""] + PROVEEDORES_DISPONIBLES, key="form_prov_select"
                 )
             else:
-                st.success("✅ ¡Booking registrado con éxito!")
-            st.rerun()
+                proveedor = st.text_input(
+                    "Nombre del Proveedor (Manual)", key="form_prov_texto_libre"
+                )
+
+        with col2:
+            producto = st.text_input("Producto", key="form_prod")
+            odc = st.text_input("Número de OC (Orden de Compra)", key="form_odc")
+
+        with col3:
+            observacion_compras = st.text_area("Observaciones - Compras", key="form_obs")
+
+        enviar = st.button("Guardar y Registrar Booking", key="btn_guardar_booking")
+
+        if enviar:
+            if not odc or not producto or not proveedor:
+                st.warning("⚠️ Por favor completa el Producto, la OC y el Proveedor.")
+            else:
+                fecha_registro_str = ahora.strftime("%Y-%m-%d %H:%M:%S")
+
+                dia_asignado_idx = dias_map.get(dia_asignado)
+                dia_actual_idx = ahora.weekday()
+                hora_actual = ahora.time()
+
+                es_mismo_dia = dia_asignado_idx == dia_actual_idx
+                es_despues_de_8am = hora_actual > time(8, 0)
+                fuera_de_tiempo = 1 if (es_mismo_dia and es_despues_de_8am) else 0
+
+                conn = sqlite3.connect("bookings.db")
+                cursor = conn.cursor()
+                cursor.execute(
+                    """
+                        INSERT INTO historico_bookings 
+                        (fecha_registro, semana, dia_asignado, familia, proveedor, producto, odc, observacion_compras, usuario_windows, fuera_de_tiempo, eliminado)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+                    """,
+                    (
+                        fecha_registro_str,
+                        semana_actual_str,
+                        dia_asignado,
+                        familia,
+                        proveedor,
+                        producto,
+                        odc,
+                        observacion_compras,
+                        usuario_actual,
+                        fuera_de_tiempo,
+                    ),
+                )
+                conn.commit()
+                conn.close()
+
+                if fuera_de_tiempo:
+                    st.warning(
+                        "⚠️ Guardado con éxito, pero marcado como **FUERA DE TIEMPO**"
+                        " (registrado después de las 8:00 AM del mismo día)."
+                    )
+                else:
+                    st.success("✅ ¡Booking registrado con éxito!")
+                st.rerun()
 
 # ---------------------------------------------------------
 # 3. VISTA: HISTÓRICO GENERAL Y REPORTES

@@ -387,7 +387,7 @@ if menu == "Booking":
             for _, row_el in df_dia_eliminados.iterrows():
                 with st.container(border=True):
                     st.error(
-                        f"❌ **PROVEEDOR ELIMINADO**\n\n**{row_el['proveedor']}**\n*Prod:* {row_el['producto']}\n*OC:* `{row_el['odc']}`"
+                        f"❌ **PROVEEDOR ELIMINADO**\n\n**{row_el['proveedor']}**\n\n*Prod:* {row_el['producto']} | *OC:* `{row_el['odc']}`"
                     )
 
             if not df_dia.empty:
@@ -416,11 +416,11 @@ if menu == "Booking":
                     with st.container(border=True):
                         if es_fuera_de_tiempo_grupo:
                             st.error(
-                                f"🚨 **FUERA DE TIEMPO**\n\n**{row['proveedor']}**\n*Prod:* {row['producto']}\n*OC:* `{row['odc']}`"
+                                f"🚨 **FUERA DE TIEMPO**\n\n**{row['proveedor']}**\n\n*Prod:* {row['producto']} | *OC:* `{row['odc']}`"
                             )
                         elif fue_movido_almacen:
                             st.error(
-                                f"⚠️ **PROVEEDOR LLEGÓ DÍA DISTINTO**\n\n**{row['proveedor']}**\n*Prod:* {row['producto']}\n*OC:* `{row['odc']}`"
+                                f"⚠️ **PROVEEDOR LLEGÓ DÍA DISTINTO**\n\n**{row['proveedor']}**\n\n*Prod:* {row['producto']} | *OC:* `{row['odc']}`"
                             )
                         else:
                             st.markdown(

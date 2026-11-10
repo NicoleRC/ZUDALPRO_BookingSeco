@@ -1,4 +1,4 @@
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 from streamlit_autorefresh import st_autorefresh
 import io
 import os
@@ -145,8 +145,13 @@ def cargar_proveedores():
 
 PROVEEDORES_DISPONIBLES = cargar_proveedores()
 
-# Calcular fecha y hora actual
-ahora = datetime.now()
+# Función para obtener la hora local ajustada a Venezuela (UTC-4) desde el servidor en la nube
+def obtener_ahora_local():
+    # Si el servidor corre en UTC, ajustamos restando 4 horas para Caracas
+    return datetime.utcnow() - timedelta(hours=4)
+
+# Calcular fecha y hora actual local
+ahora = obtener_ahora_local()
 ano, semana_num, _ = ahora.isocalendar()
 semana_actual_str = f"{ano}-SEM {semana_num:02d}"
 
@@ -297,7 +302,7 @@ if menu == "Booking":
                 df_a_tiempo = df_dia[df_dia["fuera_de_tiempo"] == 0]
                 df_tarde = df_dia[df_dia["fuera_de_tiempo"] == 1]
 
-                # Función común para renderizar las tarjetas con validación estricta de tiempo de las 8am
+                # Función común para renderizar las tarjetas con hora local ajustada
                 def renderizar_tarjeta(row, es_fuera_de_tiempo_grupo=False):
                     rec_val = bool(row["recepcion_almacen"])
                     obs_alm = row["observacion_almacen"] or ""
@@ -313,9 +318,8 @@ if menu == "Booking":
 
                     dia_booking_idx = dias_map.get(row["dia_asignado"], 0)
                     es_dia_pasado = dia_actual_idx > 4 or dia_booking_idx < dia_actual_idx
-                    
-                    # REGLA CLAVE: Si el día asignado es HOY y ya pasaron las 8:00 AM (o si el día ya pasó)
                     es_mismo_dia_despues_8am = (dia_booking_idx == dia_actual_idx) and (hora_actual > time(8, 0))
+
                     bloquear_por_tiempo_compras = (not es_autorizado) and (es_dia_pasado or es_mismo_dia_despues_8am)
 
                     with st.container(border=True):
@@ -360,7 +364,7 @@ if menu == "Booking":
                         if puede_editar_almacen and not bloquear_recepcion_por_dia and (
                             nuevo_rec != rec_val or nueva_obs_alm != obs_alm
                         ):
-                            tiempo_actual_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                            tiempo_actual_str = obtener_ahora_local().strftime("%Y-%m-%d %H:%M:%S")
                             conn = sqlite3.connect("bookings.db")
                             cursor = conn.cursor()
                             cursor.execute(
@@ -391,7 +395,7 @@ if menu == "Booking":
                                     if not nueva_odc_val or not nuevo_prod_val or not nuevo_prov_val:
                                         st.warning("⚠️ El proveedor, el producto y la OC no pueden estar vacíos.")
                                     else:
-                                        tiempo_actual_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                                        tiempo_actual_str = obtener_ahora_local().strftime("%Y-%m-%d %H:%M:%S")
                                         conn = sqlite3.connect("bookings.db")
                                         cursor = conn.cursor()
                                         cursor.execute(
@@ -407,7 +411,7 @@ if menu == "Booking":
                                         st.success("¡Datos del booking actualizados con éxito!")
                                         st.rerun()
 
-                        # Opción para mover de día (Bloqueada si ya pasaron las 8:00 AM del día de recepción)
+                        # Opción para mover de día
                         with st.expander("⚙️ Mover de día"):
                             if bloquear_por_tiempo_compras:
                                 st.warning("🔒 No puedes mover de día este booking porque ya pasaron las 8:00 AM del día de recepción.")
@@ -431,7 +435,7 @@ if menu == "Booking":
                                 )
                                 if nuevo_dia != row["dia_asignado"]:
                                     dia_origen = row["dia_asignado"]
-                                    tiempo_actual_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                                    tiempo_actual_str = obtener_ahora_local().strftime("%Y-%m-%d %H:%M:%S")
                                     conn = sqlite3.connect("bookings.db")
                                     cursor = conn.cursor()
 
@@ -469,7 +473,7 @@ if menu == "Booking":
                             else:
                                 st.warning("⚠️ Esto ocultará el proveedor del calendario semanal, pero quedará registrado en el histórico.")
                                 if st.button("Confirmar Eliminación", key=f"btn_eliminar_{key_suf}{row['id']}"):
-                                    tiempo_actual_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                                    tiempo_actual_str = obtener_ahora_local().strftime("%Y-%m-%d %H:%M:%S")
                                     conn = sqlite3.connect("bookings.db")
                                     cursor = conn.cursor()
                                     cursor.execute(

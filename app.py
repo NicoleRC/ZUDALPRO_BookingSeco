@@ -161,12 +161,18 @@ st.markdown(
         div[data-testid="stVerticalBlock"] > div > div[data-testid="stVerticalBlock"] {
             gap: 0.4rem !important;
         }
-        /* Reducir espacio en las cajas de alerta (st.error / st.warning) */
+        
+        /* Reducir espacio en las cajas de alerta (st.error / st.warning) y acercar líneas de texto */
         div[data-testid="stAlert"] {
-            padding-top: 0.5rem !important;
-            padding-bottom: 0.5rem !important;
-            margin-bottom: 0.5rem !important;
+            padding-top: 0.4rem !important;
+            padding-bottom: 0.4rem !important;
+            margin-bottom: 0.4rem !important;
         }
+        div[data-testid="stAlert"] p {
+            margin-bottom: 0.15rem !important;
+            line-height: 1.2 !important;
+        }
+
         /* Reducir espacio en los expanders */
         div.streamlit-expanderHeader {
             padding-top: 0.3rem !important;

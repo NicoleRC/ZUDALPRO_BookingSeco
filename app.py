@@ -5,6 +5,7 @@ import os
 import sqlite3
 import pandas as pd
 import streamlit as st
+import base64
 
 # =========================================================
 # 0. CONFIGURACIÓN DE PÁGINA (DEBE SER LO PRIMERO)
@@ -123,15 +124,55 @@ def init_db():
 
 init_db()
 
-col_logo, col_titulo = st.columns([1, 4])
+# =========================================================
+# ESTILOS CSS: CINTA SUPERIOR Y DÍAS FIJOS (STICKY)
+# =========================================================
+st.markdown(
+    """
+    <style>
+        /* Eliminar espacio superior de la página y ajustar márgenes */
+        .block-container {
+            padding-top: 0rem !important;
+            padding-left: 2rem !important;
+            padding-right: 2rem !important;
+        }
+        header[data-testid="stHeader"] {
+            background: transparent;
+        }
+        /* Banner de la cinta corporativa a ancho completo */
+        .cinta-banner {
+            width: 100%;
+            height: auto;
+            display: block;
+            border-radius: 0px 0px 8px 8px;
+            margin-bottom: 20px;
+        }
+        /* Hacer que los títulos de los días de la semana sean fijos (sticky) al hacer scroll */
+        div[data-testid="column"] > div > div > div > h3 {
+            position: sticky;
+            top: 0rem;
+            background-color: #0e1117;
+            z-index: 999;
+            padding-top: 10px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #262730;
+        }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
-with col_logo:
-    # Si subes tu logo con este nombre exacto a GitHub, se mostrará siempre
-    if os.path.exists("CINTA ZUDALPRO.jpg"):
-        st.image("CINTA ZUDALPRO.jpg", width=160)
+# Renderizar la imagen de la cinta pegada arriba a ancho completo
+if os.path.exists("cinta_zudalpro.jpg"):
+    with open("cinta_zudalpro.jpg", "rb") as image_file:
+        encoded_string = base64.b64encode(image_file.read()).decode()
+    st.markdown(
+        f'<img src="data:image/jpeg;base64,{encoded_string}" class="cinta-banner">',
+        unsafe_allow_html=True
+    )
 
 # Título principal de la app
-st.title("📅 Planificación de Compras Almacén Seco - ZUDALPRO")
+st.title("Planificación de Compras Almacén Seco - ZUDALPRO")
 
 # Obtener usuario actual desde la sesión activa
 usuario_actual = st.session_state["usuario_actual"]
@@ -395,7 +436,6 @@ if menu == "Booking":
                         if bloquear_por_tiempo_compras:
                             st.caption("🔒 *Pasadas las 8:00 AM del día de recepción; Compras ya no puede modificar este booking.*")
 
-                        # Al cambiar recepción o nota de almacén, se registra fecha y hora de recepción si se marca SI
                         if puede_editar_almacen and not bloquear_recepcion_por_dia and (
                             nuevo_rec != rec_val or nueva_obs_alm != obs_alm
                         ):
@@ -621,7 +661,7 @@ if menu == "Booking":
                     """
                         INSERT INTO historico_bookings 
                         (fecha_registro, hora_registro, semana, dia_asignado, familia, proveedor, producto, odc, observacion_compras, usuario_windows, fuera_de_tiempo, eliminado, fecha_ultima_modificacion, hora_ultima_modificacion)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
                     """,
                     (
                         fecha_reg,
@@ -652,7 +692,7 @@ if menu == "Booking":
                 st.rerun()
 
 # ---------------------------------------------------------
-# 3. VISTA: HISTÓRICO GENERAL Y REPORTES (EXCEL REAL .XLSX)
+# 3. VISTA: HISTÓRICO GENERAL Y REPORTES
 # ---------------------------------------------------------
 else:
     st.subheader("📊 Histórico General por Semana")

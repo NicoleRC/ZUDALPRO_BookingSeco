@@ -416,11 +416,11 @@ if menu == "Booking":
                     with st.container(border=True):
                         if es_fuera_de_tiempo_grupo:
                             st.error(
-                                f"🚨 **FUERA DE TIEMPO**\n\n**{row['proveedor']}**\n\n*Prod:* {row['producto']} | *OC:* `{row['odc']}`"
+                                f"🚨 **FUERA DE TIEMPO**\n\n**{row['proveedor']}**\n\n*Prod:* {row['producto']} | *OC:* `{row['odc']}`| *Fam:* {row['familia']}"
                             )
                         elif fue_movido_almacen:
                             st.error(
-                                f"⚠️ **PROVEEDOR LLEGÓ DÍA DISTINTO**\n\n**{row['proveedor']}**\n\n*Prod:* {row['producto']} | *OC:* `{row['odc']}`"
+                                f"⚠️ **PROVEEDOR LLEGÓ DÍA DISTINTO**\n\n**{row['proveedor']}**\n\n*Prod:* {row['producto']} | *OC:* `{row['odc']}`| *Fam:* {row['familia']}"
                             )
                         else:
                             st.markdown(

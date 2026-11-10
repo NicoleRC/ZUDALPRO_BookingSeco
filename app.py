@@ -127,7 +127,7 @@ def init_db():
 init_db()
 
 # =========================================================
-# ESTILOS CSS: CINTA SUPERIOR Y DÍAS FIJOS (STICKY)
+# ESTILOS CSS: CINTA, DÍAS FIJOS Y REDUCCIÓN DE ESPACIOS
 # =========================================================
 st.markdown(
     """
@@ -156,6 +156,22 @@ st.markdown(
             padding-bottom: 10px;
             border-bottom: 2px solid #262730;
         }
+
+        /* --- REDUCIR ESPACIOS INTERNOS EN LAS TARJETAS --- */
+        div[data-testid="stVerticalBlock"] > div > div[data-testid="stVerticalBlock"] {
+            gap: 0.4rem !important;
+        }
+        /* Reducir espacio en las cajas de alerta (st.error / st.warning) */
+        div[data-testid="stAlert"] {
+            padding-top: 0.5rem !important;
+            padding-bottom: 0.5rem !important;
+            margin-bottom: 0.5rem !important;
+        }
+        /* Reducir espacio en los expanders */
+        div.streamlit-expanderHeader {
+            padding-top: 0.3rem !important;
+            padding-bottom: 0.3rem !important;
+        }
     </style>
     """,
     unsafe_allow_html=True
@@ -169,7 +185,7 @@ if os.path.exists("cinta_zudalpro.jpg"):
         unsafe_allow_html=True
     )
 
-st.title("Planificación de Compras Almacén Seco - ZUDALPRO")
+st.title("📅 Planificación de Compras Almacén Seco - ZUDALPRO")
 
 usuario_actual = st.session_state["usuario_actual"]
 
@@ -463,10 +479,7 @@ if menu == "Booking":
                                 nuevo_prov_val = st.text_input("Proveedor", value=row["proveedor"], key=f"edit_prov_{key_suf}{row['id']}")
                                 nuevo_prod_val = st.text_input("Producto", value=row["producto"], key=f"edit_prod_{key_suf}{row['id']}")
                                 
-                                nuevo_odc_input = st.text_input("Número de OC", value=str(row["odc"]), key=f"edit_odc_{key_suf}{row['id']}")
-                                nueva_odc_val = "".join(filter(str.isdigit, nuevo_odc_input))
-                                if nuevo_odc_input and nueva_odc_val != nuevo_odc_input:
-                                    st.warning("⚠️ El número de OC solo permite dígitos numéricos.")
+                                nuevo_odc_val = st.text_input("Número de OC", value=str(row["odc"]), key=f"edit_odc_{key_suf}{row['id']}")
                                 
                                 fam_actual = row["familia"] if row["familia"] in FAMILIAS_DISPONIBLES else FAMILIAS_DISPONIBLES[0]
                                 nueva_fam_val = st.selectbox("Familia", FAMILIAS_DISPONIBLES, index=FAMILIAS_DISPONIBLES.index(fam_actual), key=f"edit_fam_{key_suf}{row['id']}")
@@ -474,8 +487,10 @@ if menu == "Booking":
                                 nueva_obs_compras_val = st.text_area("Observaciones - Compras", value=obs_compras_actual, key=f"edit_obs_c_{key_suf}{row['id']}")
 
                                 if st.button("Guardar Cambios", key=f"btn_guardar_edit_{key_suf}{row['id']}"):
-                                    if not nueva_odc_val or not nuevo_prod_val or not nuevo_prov_val:
+                                    if not nuevo_odc_val or not nuevo_prod_val or not nuevo_prov_val:
                                         st.warning("⚠️ El proveedor, el producto y la OC no pueden estar vacíos.")
+                                    elif not nuevo_odc_val.isdigit():
+                                        st.error("❌ El número de OC debe contener únicamente dígitos numéricos.")
                                     else:
                                         ahora_local = obtener_ahora_local()
                                         f_mod = ahora_local.strftime("%Y-%m-%d")
@@ -489,7 +504,7 @@ if menu == "Booking":
                                             SET proveedor = ?, producto = ?, odc = ?, familia = ?, observacion_compras = ?, fecha_ultima_modificacion = ?, hora_ultima_modificacion = ? 
                                             WHERE id = ?
                                             """,
-                                            (nuevo_prov_val, nuevo_prod_val, nueva_odc_val, nueva_fam_val, nueva_obs_compras_val, f_mod, h_mod, row["id"])
+                                            (nuevo_prov_val, nuevo_prod_val, nuevo_odc_val, nueva_fam_val, nueva_obs_compras_val, f_mod, h_mod, row["id"])
                                         )
                                         conn.commit()
                                         conn.close()
@@ -630,10 +645,7 @@ if menu == "Booking":
 
         with col2:
             producto = st.text_input("Producto", key="form_prod")
-            odc_input = st.text_input("Número de OC (Orden de Compra)", key="form_odc")
-            odc = "".join(filter(str.isdigit, odc_input))
-            if odc_input and odc != odc_input:
-                st.warning("⚠️ El número de OC solo permite dígitos numéricos.")
+            odc = st.text_input("Número de OC (Orden de Compra)", key="form_odc")
 
         with col3:
             observacion_compras = st.text_area("Observaciones - Compras", key="form_obs")
@@ -645,6 +657,8 @@ if menu == "Booking":
                 st.error("❌ No puedes registrar bookings para días que ya pasaron.")
             elif not odc or not producto or not proveedor:
                 st.warning("⚠️ Por favor completa el Producto, la OC y el Proveedor.")
+            elif not odc.isdigit():
+                st.error("❌ El número de OC debe contener únicamente dígitos numéricos (sin letras).")
             else:
                 fecha_reg = ahora.strftime("%Y-%m-%d")
                 hora_reg = ahora.strftime("%H:%M:%S")

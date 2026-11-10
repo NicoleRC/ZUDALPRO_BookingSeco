@@ -191,7 +191,7 @@ if os.path.exists("cinta_zudalpro.jpg"):
         unsafe_allow_html=True
     )
 
-st.title("📅 Planificación de Compras Almacén Seco - ZUDALPRO")
+st.title("Planificación de Compras Almacén Seco - ZUDALPRO")
 
 usuario_actual = st.session_state["usuario_actual"]
 

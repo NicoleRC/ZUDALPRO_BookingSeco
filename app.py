@@ -24,7 +24,7 @@ USUARIOS_CONTRASENAS = {
     "nramirez": "nr29",
     "durribarri": "du30",
     "fgonzalez": "fg10",
-    "krodriguez": "Kr05",
+    "krodriguez": "r05",
     "cberroteran": "cb31",
     "icarrillo": "c",
 }
@@ -191,7 +191,7 @@ if os.path.exists("cinta_zudalpro.jpg"):
         unsafe_allow_html=True
     )
 
-st.title("Planificación de Compras Almacén Seco - ZUDALPRO")
+st.title("📅 Planificación de Compras Almacén Seco - ZUDALPRO")
 
 usuario_actual = st.session_state["usuario_actual"]
 
@@ -387,7 +387,7 @@ if menu == "Booking":
             for _, row_el in df_dia_eliminados.iterrows():
                 with st.container(border=True):
                     st.error(
-                        f"❌ **PROVEEDOR ELIMINADO**\n\n**{row_el['proveedor']}**\n\n*Prod:* {row_el['producto']} | *OC:* `{row_el['odc']}`"
+                        f"❌ **PROVEEDOR ELIMINADO**\n\n**{row_el['proveedor']}**\n\n*Prod:* {row_el['producto']} | *OC:* `{row_el['odc']}` | *Fam:* {row_el['familia']}"
                     )
 
             if not df_dia.empty:
@@ -416,11 +416,11 @@ if menu == "Booking":
                     with st.container(border=True):
                         if es_fuera_de_tiempo_grupo:
                             st.error(
-                                f"🚨 **FUERA DE TIEMPO**\n\n**{row['proveedor']}**\n\n*Prod:* {row['producto']} | *OC:* `{row['odc']}`| *Fam:* {row['familia']}"
+                                f"🚨 **FUERA DE TIEMPO**\n\n**{row['proveedor']}**\n\n*Prod:* {row['producto']} | *OC:* `{row['odc']}` | *Fam:* {row['familia']}"
                             )
                         elif fue_movido_almacen:
                             st.error(
-                                f"⚠️ **PROVEEDOR LLEGÓ DÍA DISTINTO**\n\n**{row['proveedor']}**\n\n*Prod:* {row['producto']} | *OC:* `{row['odc']}`| *Fam:* {row['familia']}"
+                                f"⚠️ **PROVEEDOR LLEGÓ DÍA DISTINTO**\n\n**{row['proveedor']}**\n\n*Prod:* {row['producto']} | *OC:* `{row['odc']}` | *Fam:* {row['familia']}"
                             )
                         else:
                             st.markdown(
@@ -476,28 +476,114 @@ if menu == "Booking":
                             conn.close()
                             st.rerun()
 
-                        with st.expander("✏️ Editar Datos del Booking"):
-                            if bloquear_por_tiempo_compras:
-                                st.warning("🔒 No puedes editar los datos de este booking porque ya pasaron las 8:00 AM del día de recepción.")
-                            elif not es_creador:
-                                st.warning(f"🔒 Solo el creador de este booking (`{row['usuario_windows']}`) puede editar sus datos.")
-                            else:
-                                nuevo_prov_val = st.text_input("Proveedor", value=row["proveedor"], key=f"edit_prov_{key_suf}{row['id']}")
-                                nuevo_prod_val = st.text_input("Producto", value=row["producto"], key=f"edit_prod_{key_suf}{row['id']}")
-                                
-                                nuevo_odc_val = st.text_input("Número de OC", value=str(row["odc"]), key=f"edit_odc_{key_suf}{row['id']}")
-                                
-                                fam_actual = row["familia"] if row["familia"] in FAMILIAS_DISPONIBLES else FAMILIAS_DISPONIBLES[0]
-                                nueva_fam_val = st.selectbox("Familia", FAMILIAS_DISPONIBLES, index=FAMILIAS_DISPONIBLES.index(fam_actual), key=f"edit_fam_{key_suf}{row['id']}")
-                                
-                                nueva_obs_compras_val = st.text_area("Observaciones - Compras", value=obs_compras_actual, key=f"edit_obs_c_{key_suf}{row['id']}")
+                        # =====================================================
+                        # MENÚ DESPLEGABLE OCULTO PARA CONFIGURACIÓN Y REGISTRO
+                        # =====================================================
+                        with st.expander("⚙️ Opciones y Registro"):
+                            with st.expander("✏️ Editar Datos del Booking"):
+                                if bloquear_por_tiempo_compras:
+                                    st.warning("🔒 No puedes editar los datos de este booking porque ya pasaron las 8:00 AM del día de recepción.")
+                                elif not es_creador:
+                                    st.warning(f"🔒 Solo el creador de este booking (`{row['usuario_windows']}`) puede editar sus datos.")
+                                else:
+                                    nuevo_prov_val = st.text_input("Proveedor", value=row["proveedor"], key=f"edit_prov_{key_suf}{row['id']}")
+                                    nuevo_prod_val = st.text_input("Producto", value=row["producto"], key=f"edit_prod_{key_suf}{row['id']}")
+                                    
+                                    nuevo_odc_val = st.text_input("Número de OC", value=str(row["odc"]), key=f"edit_odc_{key_suf}{row['id']}")
+                                    
+                                    fam_actual = row["familia"] if row["familia"] in FAMILIAS_DISPONIBLES else FAMILIAS_DISPONIBLES[0]
+                                    nueva_fam_val = st.selectbox("Familia", FAMILIAS_DISPONIBLES, index=FAMILIAS_DISPONIBLES.index(fam_actual), key=f"edit_fam_{key_suf}{row['id']}")
+                                    
+                                    nueva_obs_compras_val = st.text_area("Observaciones - Compras", value=obs_compras_actual, key=f"edit_obs_c_{key_suf}{row['id']}")
 
-                                if st.button("Guardar Cambios", key=f"btn_guardar_edit_{key_suf}{row['id']}"):
-                                    if not nuevo_odc_val or not nuevo_prod_val or not nuevo_prov_val:
-                                        st.warning("⚠️ El proveedor, el producto y la OC no pueden estar vacíos.")
-                                    elif not nuevo_odc_val.isdigit():
-                                        st.error("❌ El número de OC debe contener únicamente dígitos numéricos.")
-                                    else:
+                                    if st.button("Guardar Cambios", key=f"btn_guardar_edit_{key_suf}{row['id']}"):
+                                        if not nuevo_odc_val or not nuevo_prod_val or not nuevo_prov_val:
+                                            st.warning("⚠️ El proveedor, el producto y la OC no pueden estar vacíos.")
+                                        elif not nuevo_odc_val.isdigit():
+                                            st.error("❌ El número de OC debe contener únicamente dígitos numéricos.")
+                                        else:
+                                            ahora_local = obtener_ahora_local()
+                                            f_mod = ahora_local.strftime("%Y-%m-%d")
+                                            h_mod = ahora_local.strftime("%H:%M:%S")
+
+                                            conn = sqlite3.connect("bookings.db")
+                                            cursor = conn.cursor()
+                                            cursor.execute(
+                                                """
+                                                UPDATE historico_bookings 
+                                                SET proveedor = ?, producto = ?, odc = ?, familia = ?, observacion_compras = ?, fecha_ultima_modificacion = ?, hora_ultima_modificacion = ? 
+                                                WHERE id = ?
+                                                """,
+                                                (nuevo_prov_val, nuevo_prod_val, nuevo_odc_val, nueva_fam_val, nueva_obs_compras_val, f_mod, h_mod, row["id"])
+                                            )
+                                            conn.commit()
+                                            conn.close()
+                                            st.success("¡Datos del booking actualizados con éxito!")
+                                            st.rerun()
+
+                            with st.expander("⚙️ Mover de día"):
+                                if bloquear_por_tiempo_compras:
+                                    st.warning("🔒 No puedes mover de día este booking porque ya pasaron las 8:00 AM del día de recepción.")
+                                elif es_dia_pasado and not es_autorizado:
+                                    st.warning("🔒 No se puede mover de día un booking cuyo día asignado ya pasó.")
+                                elif not (es_creador or es_autorizado):
+                                    st.warning(
+                                        f"🔒 Solo el creador (`{row['usuario_windows']}`) o Almacén pueden moverlo de día."
+                                    )
+                                else:
+                                    dias_futuros_disponibles = [d for d in DIAS_SEMANA if dias_map[d] >= dia_actual_idx]
+                                    if row["dia_asignado"] not in dias_futuros_disponibles:
+                                        dias_futuros_disponibles.append(row["dia_asignado"])
+                                        dias_futuros_disponibles = sorted(dias_futuros_disponibles, key=lambda x: dias_map[x])
+
+                                    nuevo_dia = st.selectbox(
+                                        "Cambiar al día:",
+                                        dias_futuros_disponibles,
+                                        index=dias_futuros_disponibles.index(row["dia_asignado"]) if row["dia_asignado"] in dias_futuros_disponibles else 0,
+                                        key=f"cambiar_dia_{key_suf}{row['id']}",
+                                    )
+                                    if nuevo_dia != row["dia_asignado"]:
+                                        dia_origen = row["dia_asignado"]
+                                        ahora_local = obtener_ahora_local()
+                                        f_mod = ahora_local.strftime("%Y-%m-%d")
+                                        h_mod = ahora_local.strftime("%H:%M:%S")
+
+                                        conn = sqlite3.connect("bookings.db")
+                                        cursor = conn.cursor()
+
+                                        if es_autorizado and not es_creador:
+                                            aviso_nuevo = f"🔄 [MOVIDO POR ALMACÉN: {usuario_actual}] Reprogramado desde {dia_origen} hacia {nuevo_dia}"
+                                        else:
+                                            aviso_nuevo = f"🔄 Reprogramado desde {dia_origen} hacia {nuevo_dia} por {usuario_actual}"
+
+                                        if obs_compras_actual:
+                                            nueva_nota_final = f"{obs_compras_actual} | {aviso_nuevo}"
+                                        else:
+                                            nueva_nota_final = aviso_nuevo
+
+                                        cursor.execute(
+                                            """UPDATE historico_bookings SET dia_asignado = ?, observacion_compras = ?, fecha_ultima_modificacion = ?, hora_ultima_modificacion = ? WHERE id = ?""",
+                                            (nuevo_dia, nueva_nota_final, f_mod, h_mod, row["id"]),
+                                        )
+                                        conn.commit()
+                                        conn.close()
+                                        st.success(f"¡Movido de {dia_origen} a {nuevo_dia} con éxito!")
+                                        st.rerun()
+
+                            with st.expander("🗑️ Eliminar del Booking"):
+                                if bloquear_por_tiempo_compras:
+                                    st.warning("🔒 No puedes eliminar este booking después de las 8:00 AM del día de recepción.")
+                                elif es_dia_pasado:
+                                    st.warning("🔒 No se puede eliminar un booking de un día que ya pasó.")
+                                elif not es_creador:
+                                    st.warning(
+                                        f"🔒 Solo el usuario que registró este booking (`{row['usuario_windows']}`) puede eliminarlo."
+                                    )
+                                elif rec_val:
+                                    st.error("❌ Este booking ya fue recibido en almacén; no se puede eliminar.")
+                                else:
+                                    st.warning("⚠️ Esto ocultará el proveedor del calendario semanal, pero quedará registrado en el histórico.")
+                                    if st.button("Confirmar Eliminación", key=f"btn_eliminar_{key_suf}{row['id']}"):
                                         ahora_local = obtener_ahora_local()
                                         f_mod = ahora_local.strftime("%Y-%m-%d")
                                         h_mod = ahora_local.strftime("%H:%M:%S")
@@ -505,102 +591,20 @@ if menu == "Booking":
                                         conn = sqlite3.connect("bookings.db")
                                         cursor = conn.cursor()
                                         cursor.execute(
-                                            """
-                                            UPDATE historico_bookings 
-                                            SET proveedor = ?, producto = ?, odc = ?, familia = ?, observacion_compras = ?, fecha_ultima_modificacion = ?, hora_ultima_modificacion = ? 
-                                            WHERE id = ?
-                                            """,
-                                            (nuevo_prov_val, nuevo_prod_val, nuevo_odc_val, nueva_fam_val, nueva_obs_compras_val, f_mod, h_mod, row["id"])
+                                            """UPDATE historico_bookings SET eliminado = 1, fecha_ultima_modificacion = ?, hora_ultima_modificacion = ? WHERE id = ?""",
+                                            (f_mod, h_mod, row["id"])
                                         )
                                         conn.commit()
                                         conn.close()
-                                        st.success("¡Datos del booking actualizados con éxito!")
+                                        st.success("¡El proveedor ha sido marcado como eliminado del booking!")
                                         st.rerun()
 
-                        with st.expander("⚙️ Mover de día"):
-                            if bloquear_por_tiempo_compras:
-                                st.warning("🔒 No puedes mover de día este booking porque ya pasaron las 8:00 AM del día de recepción.")
-                            elif es_dia_pasado and not es_autorizado:
-                                st.warning("🔒 No se puede mover de día un booking cuyo día asignado ya pasó.")
-                            elif not (es_creador or es_autorizado):
-                                st.warning(
-                                    f"🔒 Solo el creador (`{row['usuario_windows']}`) o Almacén pueden moverlo de día."
-                                )
-                            else:
-                                dias_futuros_disponibles = [d for d in DIAS_SEMANA if dias_map[d] >= dia_actual_idx]
-                                if row["dia_asignado"] not in dias_futuros_disponibles:
-                                    dias_futuros_disponibles.append(row["dia_asignado"])
-                                    dias_futuros_disponibles = sorted(dias_futuros_disponibles, key=lambda x: dias_map[x])
+                            texto_pie = f"🕒 Reg: {row['fecha_registro']} {row['hora_registro']}"
+                            if row["fecha_ultima_modificacion"]:
+                                texto_pie += f" | 🔄 Mod: {row['fecha_ultima_modificacion']} {row['hora_ultima_modificacion']}"
+                            texto_pie += f" | 👤 {row['usuario_windows']}"
 
-                                nuevo_dia = st.selectbox(
-                                    "Cambiar al día:",
-                                    dias_futuros_disponibles,
-                                    index=dias_futuros_disponibles.index(row["dia_asignado"]) if row["dia_asignado"] in dias_futuros_disponibles else 0,
-                                    key=f"cambiar_dia_{key_suf}{row['id']}",
-                                )
-                                if nuevo_dia != row["dia_asignado"]:
-                                    dia_origen = row["dia_asignado"]
-                                    ahora_local = obtener_ahora_local()
-                                    f_mod = ahora_local.strftime("%Y-%m-%d")
-                                    h_mod = ahora_local.strftime("%H:%M:%S")
-
-                                    conn = sqlite3.connect("bookings.db")
-                                    cursor = conn.cursor()
-
-                                    if es_autorizado and not es_creador:
-                                        aviso_nuevo = f"🔄 [MOVIDO POR ALMACÉN: {usuario_actual}] Reprogramado desde {dia_origen} hacia {nuevo_dia}"
-                                    else:
-                                        aviso_nuevo = f"🔄 Reprogramado desde {dia_origen} hacia {nuevo_dia} por {usuario_actual}"
-
-                                    if obs_compras_actual:
-                                        nueva_nota_final = f"{obs_compras_actual} | {aviso_nuevo}"
-                                    else:
-                                        nueva_nota_final = aviso_nuevo
-
-                                    cursor.execute(
-                                        """UPDATE historico_bookings SET dia_asignado = ?, observacion_compras = ?, fecha_ultima_modificacion = ?, hora_ultima_modificacion = ? WHERE id = ?""",
-                                        (nuevo_dia, nueva_nota_final, f_mod, h_mod, row["id"]),
-                                    )
-                                    conn.commit()
-                                    conn.close()
-                                    st.success(f"¡Movido de {dia_origen} a {nuevo_dia} con éxito!")
-                                    st.rerun()
-
-                        with st.expander("🗑️ Eliminar del Booking"):
-                            if bloquear_por_tiempo_compras:
-                                st.warning("🔒 No puedes eliminar este booking después de las 8:00 AM del día de recepción.")
-                            elif es_dia_pasado:
-                                st.warning("🔒 No se puede eliminar un booking de un día que ya pasó.")
-                            elif not es_creador:
-                                st.warning(
-                                    f"🔒 Solo el usuario que registró este booking (`{row['usuario_windows']}`) puede eliminarlo."
-                                )
-                            elif rec_val:
-                                st.error("❌ Este booking ya fue recibido en almacén; no se puede eliminar.")
-                            else:
-                                st.warning("⚠️ Esto ocultará el proveedor del calendario semanal, pero quedará registrado en el histórico.")
-                                if st.button("Confirmar Eliminación", key=f"btn_eliminar_{key_suf}{row['id']}"):
-                                    ahora_local = obtener_ahora_local()
-                                    f_mod = ahora_local.strftime("%Y-%m-%d")
-                                    h_mod = ahora_local.strftime("%H:%M:%S")
-
-                                    conn = sqlite3.connect("bookings.db")
-                                    cursor = conn.cursor()
-                                    cursor.execute(
-                                        """UPDATE historico_bookings SET eliminado = 1, fecha_ultima_modificacion = ?, hora_ultima_modificacion = ? WHERE id = ?""",
-                                        (f_mod, h_mod, row["id"])
-                                    )
-                                    conn.commit()
-                                    conn.close()
-                                    st.success("¡El proveedor ha sido marcado como eliminado del booking!")
-                                    st.rerun()
-
-                        texto_pie = f"🕒 Reg: {row['fecha_registro']} {row['hora_registro']}"
-                        if row["fecha_ultima_modificacion"]:
-                            texto_pie += f" | 🔄 Mod: {row['fecha_ultima_modificacion']} {row['hora_ultima_modificacion']}"
-                        texto_pie += f" | 👤 {row['usuario_windows']}"
-
-                        st.caption(texto_pie)
+                            st.caption(texto_pie)
 
                 for _, row in df_a_tiempo.iterrows():
                     renderizar_tarjeta(row, es_fuera_de_tiempo_grupo=False)

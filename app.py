@@ -169,7 +169,7 @@ if os.path.exists("cinta_zudalpro.jpg"):
         unsafe_allow_html=True
     )
 
-st.title("📅 Planificación de Compras Almacén Seco - ZUDALPRO")
+st.title("Planificación de Compras Almacén Seco - ZUDALPRO")
 
 usuario_actual = st.session_state["usuario_actual"]
 
@@ -462,7 +462,11 @@ if menu == "Booking":
                             else:
                                 nuevo_prov_val = st.text_input("Proveedor", value=row["proveedor"], key=f"edit_prov_{key_suf}{row['id']}")
                                 nuevo_prod_val = st.text_input("Producto", value=row["producto"], key=f"edit_prod_{key_suf}{row['id']}")
-                                nueva_odc_val = st.text_input("Número de OC", value=str(row["odc"]), key=f"edit_odc_{key_suf}{row['id']}")
+                                
+                                nuevo_odc_input = st.text_input("Número de OC", value=str(row["odc"]), key=f"edit_odc_{key_suf}{row['id']}")
+                                nueva_odc_val = "".join(filter(str.isdigit, nuevo_odc_input))
+                                if nuevo_odc_input and nueva_odc_val != nuevo_odc_input:
+                                    st.warning("⚠️ El número de OC solo permite dígitos numéricos.")
                                 
                                 fam_actual = row["familia"] if row["familia"] in FAMILIAS_DISPONIBLES else FAMILIAS_DISPONIBLES[0]
                                 nueva_fam_val = st.selectbox("Familia", FAMILIAS_DISPONIBLES, index=FAMILIAS_DISPONIBLES.index(fam_actual), key=f"edit_fam_{key_suf}{row['id']}")
@@ -626,7 +630,10 @@ if menu == "Booking":
 
         with col2:
             producto = st.text_input("Producto", key="form_prod")
-            odc = st.text_input("Número de OC (Orden de Compra)", key="form_odc")
+            odc_input = st.text_input("Número de OC (Orden de Compra)", key="form_odc")
+            odc = "".join(filter(str.isdigit, odc_input))
+            if odc_input and odc != odc_input:
+                st.warning("⚠️ El número de OC solo permite dígitos numéricos.")
 
         with col3:
             observacion_compras = st.text_area("Observaciones - Compras", key="form_obs")

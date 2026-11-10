@@ -24,7 +24,7 @@ USUARIOS_CONTRASENAS = {
     "nramirez": "nr29",
     "durribarri": "du30",
     "fgonzalez": "fg10",
-    "krodriguez": "r05",
+    "krodriguez": "kr05",
     "cberroteran": "cb31",
     "icarrillo": "c",
 }

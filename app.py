@@ -24,7 +24,7 @@ USUARIOS_CONTRASENAS = {
     "nramirez": "nr29",
     "durribarri": "du30",
     "fgonzalez": "fg10",
-    "krodriguez": "kr05",
+    "krodriguez": "Kr05",
     "cberroteran": "cb31",
     "icarrillo": "c",
 }
@@ -424,7 +424,7 @@ if menu == "Booking":
                             )
                         else:
                             st.markdown(
-                                f"**{row['proveedor']}**\n\n*Prod:* {row['producto']}\n*OC:* `{row['odc']}`"
+                                f"**{row['proveedor']}**\n\n*Prod:* {row['producto']} | *OC:* `{row['odc']}`"
                                 f" | *Fam:* {row['familia']}"
                             )
                         

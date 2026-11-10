@@ -24,7 +24,7 @@ USUARIOS_CONTRASENAS = {
     "nramirez": "nr29",
     "durribarri": "du30",
     "fgonzalez": "fg10",
-    "krodriguez": "r05",
+    "krodriguez": "kr05",
     "cberroteran": "cb31",
     "icarrillo": "c",
 }
@@ -191,7 +191,7 @@ if os.path.exists("cinta_zudalpro.jpg"):
         unsafe_allow_html=True
     )
 
-st.title("📅 Planificación de Compras Almacén Seco - ZUDALPRO")
+st.title("Planificación de Compras Almacén Seco - ZUDALPRO")
 
 usuario_actual = st.session_state["usuario_actual"]
 

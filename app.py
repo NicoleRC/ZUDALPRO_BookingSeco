@@ -127,8 +127,8 @@ col_logo, col_titulo = st.columns([1, 4])
 
 with col_logo:
     # Si subes tu logo con este nombre exacto a GitHub, se mostrará siempre
-    if os.path.exists("logo_zudalpro.png"):
-        st.image("logo_zudalpro.png", width=160)
+    if os.path.exists("CINTA ZUDALPRO.jpg"):
+        st.image("CINTA ZUDALPRO.jpg", width=160)
 
 # Título principal de la app
 st.title("📅 Planificación de Compras Almacén Seco - ZUDALPRO")

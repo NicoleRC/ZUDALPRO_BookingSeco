@@ -66,6 +66,7 @@ def init_db():
         CREATE TABLE IF NOT EXISTS historico_bookings (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             fecha_registro TEXT,
+            hora_registro TEXT,
             semana TEXT,
             dia_asignado TEXT,
             familia TEXT,
@@ -74,23 +75,31 @@ def init_db():
             odc TEXT,
             observacion_compras TEXT,
             recepcion_almacen INTEGER DEFAULT 0,
+            fecha_recepcion TEXT,
+            hora_recepcion TEXT,
             observacion_almacen TEXT,
             usuario_windows TEXT,
             fuera_de_tiempo INTEGER DEFAULT 0,
             eliminado INTEGER DEFAULT 0,
-            ultima_modificacion TEXT
+            fecha_ultima_modificacion TEXT,
+            hora_ultima_modificacion TEXT
         )
     """)
 
     columnas_nuevas = [
+        ("fecha_registro", "TEXT"),
+        ("hora_registro", "TEXT"),
         ("familia", "TEXT"),
         ("producto", "TEXT"),
         ("observacion_compras", "TEXT"),
         ("recepcion_almacen", "INTEGER DEFAULT 0"),
+        ("fecha_recepcion", "TEXT"),
+        ("hora_recepcion", "TEXT"),
         ("observacion_almacen", "TEXT"),
         ("fuera_de_tiempo", "INTEGER DEFAULT 0"),
         ("eliminado", "INTEGER DEFAULT 0"),
-        ("ultima_modificacion", "TEXT"),
+        ("fecha_ultima_modificacion", "TEXT"),
+        ("hora_ultima_modificacion", "TEXT"),
     ]
     for col, def_val in columnas_nuevas:
         try:
@@ -113,6 +122,13 @@ def init_db():
 
 
 init_db()
+
+col_logo, col_titulo = st.columns([1, 4])
+
+with col_logo:
+    # Si subes tu logo con este nombre exacto a GitHub, se mostrará siempre
+    if os.path.exists("logo_zudalpro.png"):
+        st.image("logo_zudalpro.png", width=160)
 
 # Título principal de la app
 st.title("📅 Planificación de Compras Almacén Seco - ZUDALPRO")
@@ -207,8 +223,13 @@ if menu == "Booking":
             "odc",
             "observacion_compras",
             "recepcion_almacen",
+            "fecha_recepcion",
+            "hora_recepcion",
             "observacion_almacen",
-            "ultima_modificacion",
+            "fecha_registro",
+            "hora_registro",
+            "fecha_ultima_modificacion",
+            "hora_ultima_modificacion",
         ]].copy()
         
         df_excel_semana_completa.columns = [
@@ -219,8 +240,13 @@ if menu == "Booking":
             "OC",
             "OBSERVACIONES - COMPRAS",
             "RECEPCION ALMACEN",
+            "FECHA RECEPCION",
+            "HORA RECEPCION",
             "OBSERVACIONES - ALMACEN",
-            "ULTIMA MODIFICACION",
+            "FECHA REGISTRO",
+            "HORA REGISTRO",
+            "FECHA ULTIMA MODIFICACION",
+            "HORA ULTIMA MODIFICACION",
         ]
         
         df_excel_semana_completa["RECEPCION ALMACEN"] = df_excel_semana_completa["RECEPCION ALMACEN"].apply(
@@ -228,7 +254,7 @@ if menu == "Booking":
         )
 
         output_sem = io.BytesIO()
-        with pd.ExcelWriter(output_sem) as writer:
+        with pd.ExcelWriter(output_sem, engine="openpyxl") as writer:
             df_excel_semana_completa.to_excel(writer, index=False, sheet_name=f"Semana_{semana_actual_str}")
         excel_bytes_sem = output_sem.getvalue()
 
@@ -257,8 +283,13 @@ if menu == "Booking":
                     "odc",
                     "observacion_compras",
                     "recepcion_almacen",
+                    "fecha_recepcion",
+                    "hora_recepcion",
                     "observacion_almacen",
-                    "ultima_modificacion",
+                    "fecha_registro",
+                    "hora_registro",
+                    "fecha_ultima_modificacion",
+                    "hora_ultima_modificacion",
                 ]].copy()
                 df_excel_dia.columns = [
                     "FAMILIA",
@@ -267,15 +298,20 @@ if menu == "Booking":
                     "OC",
                     "OBSERVACIONES - COMPRAS",
                     "RECEPCION ALMACEN",
+                    "FECHA RECEPCION",
+                    "HORA RECEPCION",
                     "OBSERVACIONES - ALMACEN",
-                    "ULTIMA MODIFICACION",
+                    "FECHA REGISTRO",
+                    "HORA REGISTRO",
+                    "FECHA ULTIMA MODIFICACION",
+                    "HORA ULTIMA MODIFICACION",
                 ]
                 df_excel_dia["RECEPCION ALMACEN"] = df_excel_dia[
                     "RECEPCION ALMACEN"
                 ].apply(lambda x: "SI" if x == 1 else "NO")
 
                 output = io.BytesIO()
-                with pd.ExcelWriter(output) as writer:
+                with pd.ExcelWriter(output, engine="openpyxl") as writer:
                     df_excel_dia.to_excel(
                         writer, index=False, sheet_name=f"Planificacion_{dia}"
                     )
@@ -359,15 +395,25 @@ if menu == "Booking":
                         if bloquear_por_tiempo_compras:
                             st.caption("🔒 *Pasadas las 8:00 AM del día de recepción; Compras ya no puede modificar este booking.*")
 
+                        # Al cambiar recepción o nota de almacén, se registra fecha y hora de recepción si se marca SI
                         if puede_editar_almacen and not bloquear_recepcion_por_dia and (
                             nuevo_rec != rec_val or nueva_obs_alm != obs_alm
                         ):
-                            tiempo_actual_str = obtener_ahora_local().strftime("%Y-%m-%d %H:%M:%S")
+                            ahora_local = obtener_ahora_local()
+                            f_rec = ahora_local.strftime("%Y-%m-%d") if nuevo_rec else None
+                            h_rec = ahora_local.strftime("%H:%M:%S") if nuevo_rec else None
+                            f_mod = ahora_local.strftime("%Y-%m-%d")
+                            h_mod = ahora_local.strftime("%H:%M:%S")
+
                             conn = sqlite3.connect("bookings.db")
                             cursor = conn.cursor()
                             cursor.execute(
-                                """UPDATE historico_bookings SET recepcion_almacen = ?, observacion_almacen = ?, ultima_modificacion = ? WHERE id = ?""",
-                                (1 if nuevo_rec else 0, nueva_obs_alm, tiempo_actual_str, row["id"]),
+                                """
+                                UPDATE historico_bookings 
+                                SET recepcion_almacen = ?, fecha_recepcion = ?, hora_recepcion = ?, observacion_almacen = ?, fecha_ultima_modificacion = ?, hora_ultima_modificacion = ? 
+                                WHERE id = ?
+                                """,
+                                (1 if nuevo_rec else 0, f_rec, h_rec, nueva_obs_alm, f_mod, h_mod, row["id"]),
                             )
                             conn.commit()
                             conn.close()
@@ -393,16 +439,19 @@ if menu == "Booking":
                                     if not nueva_odc_val or not nuevo_prod_val or not nuevo_prov_val:
                                         st.warning("⚠️ El proveedor, el producto y la OC no pueden estar vacíos.")
                                     else:
-                                        tiempo_actual_str = obtener_ahora_local().strftime("%Y-%m-%d %H:%M:%S")
+                                        ahora_local = obtener_ahora_local()
+                                        f_mod = ahora_local.strftime("%Y-%m-%d")
+                                        h_mod = ahora_local.strftime("%H:%M:%S")
+
                                         conn = sqlite3.connect("bookings.db")
                                         cursor = conn.cursor()
                                         cursor.execute(
                                             """
                                             UPDATE historico_bookings 
-                                            SET proveedor = ?, producto = ?, odc = ?, familia = ?, observacion_compras = ?, ultima_modificacion = ? 
+                                            SET proveedor = ?, producto = ?, odc = ?, familia = ?, observacion_compras = ?, fecha_ultima_modificacion = ?, hora_ultima_modificacion = ? 
                                             WHERE id = ?
                                             """,
-                                            (nuevo_prov_val, nuevo_prod_val, nueva_odc_val, nueva_fam_val, nueva_obs_compras_val, tiempo_actual_str, row["id"])
+                                            (nuevo_prov_val, nuevo_prod_val, nueva_odc_val, nueva_fam_val, nueva_obs_compras_val, f_mod, h_mod, row["id"])
                                         )
                                         conn.commit()
                                         conn.close()
@@ -433,7 +482,10 @@ if menu == "Booking":
                                 )
                                 if nuevo_dia != row["dia_asignado"]:
                                     dia_origen = row["dia_asignado"]
-                                    tiempo_actual_str = obtener_ahora_local().strftime("%Y-%m-%d %H:%M:%S")
+                                    ahora_local = obtener_ahora_local()
+                                    f_mod = ahora_local.strftime("%Y-%m-%d")
+                                    h_mod = ahora_local.strftime("%H:%M:%S")
+
                                     conn = sqlite3.connect("bookings.db")
                                     cursor = conn.cursor()
 
@@ -448,8 +500,8 @@ if menu == "Booking":
                                         nueva_nota_final = aviso_nuevo
 
                                     cursor.execute(
-                                        """UPDATE historico_bookings SET dia_asignado = ?, observacion_compras = ?, ultima_modificacion = ? WHERE id = ?""",
-                                        (nuevo_dia, nueva_nota_final, tiempo_actual_str, row["id"]),
+                                        """UPDATE historico_bookings SET dia_asignado = ?, observacion_compras = ?, fecha_ultima_modificacion = ?, hora_ultima_modificacion = ? WHERE id = ?""",
+                                        (nuevo_dia, nueva_nota_final, f_mod, h_mod, row["id"]),
                                     )
                                     conn.commit()
                                     conn.close()
@@ -471,21 +523,24 @@ if menu == "Booking":
                             else:
                                 st.warning("⚠️ Esto ocultará el proveedor del calendario semanal, pero quedará registrado en el histórico.")
                                 if st.button("Confirmar Eliminación", key=f"btn_eliminar_{key_suf}{row['id']}"):
-                                    tiempo_actual_str = obtener_ahora_local().strftime("%Y-%m-%d %H:%M:%S")
+                                    ahora_local = obtener_ahora_local()
+                                    f_mod = ahora_local.strftime("%Y-%m-%d")
+                                    h_mod = ahora_local.strftime("%H:%M:%S")
+
                                     conn = sqlite3.connect("bookings.db")
                                     cursor = conn.cursor()
                                     cursor.execute(
-                                        """UPDATE historico_bookings SET eliminado = 1, ultima_modificacion = ? WHERE id = ?""",
-                                        (tiempo_actual_str, row["id"])
+                                        """UPDATE historico_bookings SET eliminado = 1, fecha_ultima_modificacion = ?, hora_ultima_modificacion = ? WHERE id = ?""",
+                                        (f_mod, h_mod, row["id"])
                                     )
                                     conn.commit()
                                     conn.close()
                                     st.success("¡El proveedor ha sido marcado como eliminado del booking!")
                                     st.rerun()
 
-                        texto_pie = f"🕒 Reg: {row['fecha_registro']}"
-                        if row["ultima_modificacion"]:
-                            texto_pie += f" | 🔄 Mod: {row['ultima_modificacion']}"
+                        texto_pie = f"🕒 Reg: {row['fecha_registro']} {row['hora_registro']}"
+                        if row["fecha_ultima_modificacion"]:
+                            texto_pie += f" | 🔄 Mod: {row['fecha_ultima_modificacion']} {row['hora_ultima_modificacion']}"
                         texto_pie += f" | 👤 {row['usuario_windows']}"
 
                         st.caption(texto_pie)
@@ -552,7 +607,8 @@ if menu == "Booking":
             elif not odc or not producto or not proveedor:
                 st.warning("⚠️ Por favor completa el Producto, la OC y el Proveedor.")
             else:
-                fecha_registro_str = ahora.strftime("%Y-%m-%d %H:%M:%S")
+                fecha_reg = ahora.strftime("%Y-%m-%d")
+                hora_reg = ahora.strftime("%H:%M:%S")
 
                 dia_asignado_idx = dias_map.get(dia_asignado)
                 es_mismo_dia = dia_asignado_idx == dia_actual_idx
@@ -564,11 +620,12 @@ if menu == "Booking":
                 cursor.execute(
                     """
                         INSERT INTO historico_bookings 
-                        (fecha_registro, semana, dia_asignado, familia, proveedor, producto, odc, observacion_compras, usuario_windows, fuera_de_tiempo, eliminado, ultima_modificacion)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
+                        (fecha_registro, hora_registro, semana, dia_asignado, familia, proveedor, producto, odc, observacion_compras, usuario_windows, fuera_de_tiempo, eliminado, fecha_ultima_modificacion, hora_ultima_modificacion)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)
                     """,
                     (
-                        fecha_registro_str,
+                        fecha_reg,
+                        hora_reg,
                         semana_actual_str,
                         dia_asignado,
                         familia,
@@ -578,7 +635,8 @@ if menu == "Booking":
                         observacion_compras,
                         usuario_actual,
                         fuera_de_tiempo,
-                        fecha_registro_str,
+                        fecha_reg,
+                        hora_reg,
                     ),
                 )
                 conn.commit()
@@ -601,7 +659,7 @@ else:
 
     conn = sqlite3.connect("bookings.db")
     df_todos = pd.read_sql_query(
-        "SELECT * FROM historico_bookings ORDER BY fecha_registro DESC", conn
+        "SELECT * FROM historico_bookings ORDER BY fecha_registro DESC, hora_registro DESC", conn
     )
     conn.close()
 
@@ -633,9 +691,14 @@ else:
             "odc",
             "observacion_compras",
             "recepcion_almacen",
+            "fecha_recepcion",
+            "hora_recepcion",
             "observacion_almacen",
             "eliminado",
-            "ultima_modificacion",
+            "fecha_registro",
+            "hora_registro",
+            "fecha_ultima_modificacion",
+            "hora_ultima_modificacion",
         ]].copy()
         
         df_excel_gen.columns = [
@@ -647,9 +710,14 @@ else:
             "OC",
             "OBSERVACIONES - COMPRAS",
             "RECEPCION ALMACEN",
+            "FECHA RECEPCION",
+            "HORA RECEPCION",
             "OBSERVACIONES - ALMACEN",
             "ELIMINADO",
-            "ULTIMA MODIFICACION",
+            "FECHA REGISTRO",
+            "HORA REGISTRO",
+            "FECHA ULTIMA MODIFICACION",
+            "HORA ULTIMA MODIFICACION",
         ]
         
         df_excel_gen["RECEPCION ALMACEN"] = df_excel_gen["RECEPCION ALMACEN"].apply(
@@ -659,7 +727,6 @@ else:
             lambda x: "SI" if x == 1 else "NO"
         )
 
-        # Generar archivo Excel (.xlsx) real en memoria usando BytesIO y ExcelWriter
         output_gen = io.BytesIO()
         with pd.ExcelWriter(output_gen, engine="openpyxl") as writer:
             df_excel_gen.to_excel(writer, index=False, sheet_name=nombre_hoja)

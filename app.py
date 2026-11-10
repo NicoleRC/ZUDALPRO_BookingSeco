@@ -78,6 +78,7 @@ def init_db():
             recepcion_almacen INTEGER DEFAULT 0,
             fecha_recepcion TEXT,
             hora_recepcion TEXT,
+            usuario_recepcion TEXT,
             observacion_almacen TEXT,
             usuario_windows TEXT,
             fuera_de_tiempo INTEGER DEFAULT 0,
@@ -96,6 +97,7 @@ def init_db():
         ("recepcion_almacen", "INTEGER DEFAULT 0"),
         ("fecha_recepcion", "TEXT"),
         ("hora_recepcion", "TEXT"),
+        ("usuario_recepcion", "TEXT"),
         ("observacion_almacen", "TEXT"),
         ("fuera_de_tiempo", "INTEGER DEFAULT 0"),
         ("eliminado", "INTEGER DEFAULT 0"),
@@ -130,7 +132,6 @@ init_db()
 st.markdown(
     """
     <style>
-        /* Eliminar espacio superior de la página y ajustar márgenes */
         .block-container {
             padding-top: 0rem !important;
             padding-left: 2rem !important;
@@ -139,7 +140,6 @@ st.markdown(
         header[data-testid="stHeader"] {
             background: transparent;
         }
-        /* Banner de la cinta corporativa a ancho completo */
         .cinta-banner {
             width: 100%;
             height: auto;
@@ -147,7 +147,6 @@ st.markdown(
             border-radius: 0px 0px 8px 8px;
             margin-bottom: 20px;
         }
-        /* Hacer que los títulos de los días de la semana sean fijos (sticky) al hacer scroll */
         div[data-testid="column"] > div > div > div > h3 {
             position: sticky;
             top: 0rem;
@@ -162,7 +161,6 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# Renderizar la imagen de la cinta pegada arriba a ancho completo
 if os.path.exists("cinta_zudalpro.jpg"):
     with open("cinta_zudalpro.jpg", "rb") as image_file:
         encoded_string = base64.b64encode(image_file.read()).decode()
@@ -171,26 +169,20 @@ if os.path.exists("cinta_zudalpro.jpg"):
         unsafe_allow_html=True
     )
 
-# Título principal de la app
-st.title("Planificación de Compras Almacén Seco - ZUDALPRO")
+st.title("📅 Planificación de Compras Almacén Seco - ZUDALPRO")
 
-# Obtener usuario actual desde la sesión activa
 usuario_actual = st.session_state["usuario_actual"]
 
-# Permisos de almacén: lsuarez y kmoreno gestionan recepción y movimientos
 USUARIOS_AUTORIZADOS_ALMACEN = ["lsuarez", "kmoreno"]
 es_autorizado = usuario_actual in USUARIOS_AUTORIZADOS_ALMACEN
 
-# Menú lateral
 menu = st.sidebar.selectbox("Menú de Navegación", ["Booking", "Histórico"])
 
-# Opciones predefinidas
 FAMILIAS_DISPONIBLES = ["PROCURA", "VIVERES", "LIMPIEZA", "EMPAQUES"]
 DIAS_SEMANA = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"]
 dias_map = {"Lunes": 0, "Martes": 1, "Miércoles": 2, "Jueves": 3, "Viernes": 4}
 
 
-# Función para cargar proveedores desde el archivo .txt
 def cargar_proveedores():
     if os.path.exists("proveedores.txt"):
         with open("proveedores.txt", "r", encoding="utf-8") as f:
@@ -202,19 +194,16 @@ def cargar_proveedores():
 
 PROVEEDORES_DISPONIBLES = cargar_proveedores()
 
-# Función para obtener la hora local ajustada a Venezuela (UTC-4) desde el servidor en la nube
 def obtener_ahora_local():
     return datetime.utcnow() - timedelta(hours=4)
 
-# Calcular fecha y hora actual local
 ahora = obtener_ahora_local()
 ano, semana_num, _ = ahora.isocalendar()
 semana_actual_str = f"{ano}-SEM {semana_num:02d}"
 
-dia_actual_idx = ahora.weekday() # 0: Lunes, ..., 4: Viernes, 5/6: Sábado/Domingo
+dia_actual_idx = ahora.weekday()
 hora_actual = ahora.time()
 
-# Filtrar días permitidos para evitar mover o registrar en días pasados
 if dia_actual_idx > 4:
     dias_permitidos_edicion = []
 else:
@@ -238,7 +227,6 @@ if menu == "Booking":
             f" `{usuario_actual}` (Perfil: **Almacén**)"
         )
 
-    # Consultar registros activos de la semana actual
     conn = sqlite3.connect("bookings.db")
     df_semana_actual = pd.read_sql_query(
         "SELECT * FROM historico_bookings WHERE semana = ? AND (eliminado = 0 OR eliminado IS NULL)",
@@ -246,7 +234,6 @@ if menu == "Booking":
         params=(semana_actual_str,),
     )
     
-    # Consultar registros eliminados de la semana actual para mostrar la alerta
     df_eliminados_semana = pd.read_sql_query(
         "SELECT * FROM historico_bookings WHERE semana = ? AND eliminado = 1",
         conn,
@@ -254,7 +241,7 @@ if menu == "Booking":
     )
     conn.close()
 
-    # --- BOTÓN MAESTRO DE DESCARGA DE TODA LA SEMANA (LUNES A VIERNES) ---
+    # --- BOTÓN MAESTRO DE DESCARGA DE TODA LA SEMANA ---
     if not df_semana_actual.empty:
         df_excel_semana_completa = df_semana_actual[[
             "dia_asignado",
@@ -266,9 +253,11 @@ if menu == "Booking":
             "recepcion_almacen",
             "fecha_recepcion",
             "hora_recepcion",
+            "usuario_recepcion",
             "observacion_almacen",
             "fecha_registro",
             "hora_registro",
+            "usuario_windows",
             "fecha_ultima_modificacion",
             "hora_ultima_modificacion",
         ]].copy()
@@ -283,9 +272,11 @@ if menu == "Booking":
             "RECEPCION ALMACEN",
             "FECHA RECEPCION",
             "HORA RECEPCION",
+            "USUARIO RECEPCION",
             "OBSERVACIONES - ALMACEN",
             "FECHA REGISTRO",
             "HORA REGISTRO",
+            "USUARIO REGISTRO",
             "FECHA ULTIMA MODIFICACION",
             "HORA ULTIMA MODIFICACION",
         ]
@@ -326,9 +317,11 @@ if menu == "Booking":
                     "recepcion_almacen",
                     "fecha_recepcion",
                     "hora_recepcion",
+                    "usuario_recepcion",
                     "observacion_almacen",
                     "fecha_registro",
                     "hora_registro",
+                    "usuario_windows",
                     "fecha_ultima_modificacion",
                     "hora_ultima_modificacion",
                 ]].copy()
@@ -341,9 +334,11 @@ if menu == "Booking":
                     "RECEPCION ALMACEN",
                     "FECHA RECEPCION",
                     "HORA RECEPCION",
+                    "USUARIO RECEPCION",
                     "OBSERVACIONES - ALMACEN",
                     "FECHA REGISTRO",
                     "HORA REGISTRO",
+                    "USUARIO REGISTRO",
                     "FECHA ULTIMA MODIFICACION",
                     "HORA ULTIMA MODIFICACION",
                 ]
@@ -367,7 +362,6 @@ if menu == "Booking":
                 )
             st.divider()
 
-            # 1. Mostrar Alerta de Proveedores Eliminados en este día
             for _, row_el in df_dia_eliminados.iterrows():
                 with st.container(border=True):
                     st.error(
@@ -442,6 +436,7 @@ if menu == "Booking":
                             ahora_local = obtener_ahora_local()
                             f_rec = ahora_local.strftime("%Y-%m-%d") if nuevo_rec else None
                             h_rec = ahora_local.strftime("%H:%M:%S") if nuevo_rec else None
+                            u_rec = usuario_actual if nuevo_rec else None
                             f_mod = ahora_local.strftime("%Y-%m-%d")
                             h_mod = ahora_local.strftime("%H:%M:%S")
 
@@ -450,16 +445,15 @@ if menu == "Booking":
                             cursor.execute(
                                 """
                                 UPDATE historico_bookings 
-                                SET recepcion_almacen = ?, fecha_recepcion = ?, hora_recepcion = ?, observacion_almacen = ?, fecha_ultima_modificacion = ?, hora_ultima_modificacion = ? 
+                                SET recepcion_almacen = ?, fecha_recepcion = ?, hora_recepcion = ?, usuario_recepcion = ?, observacion_almacen = ?, fecha_ultima_modificacion = ?, hora_ultima_modificacion = ? 
                                 WHERE id = ?
                                 """,
-                                (1 if nuevo_rec else 0, f_rec, h_rec, nueva_obs_alm, f_mod, h_mod, row["id"]),
+                                (1 if nuevo_rec else 0, f_rec, h_rec, u_rec, nueva_obs_alm, f_mod, h_mod, row["id"]),
                             )
                             conn.commit()
                             conn.close()
                             st.rerun()
 
-                        # Opción para editar detalles principales
                         with st.expander("✏️ Editar Datos del Booking"):
                             if bloquear_por_tiempo_compras:
                                 st.warning("🔒 No puedes editar los datos de este booking porque ya pasaron las 8:00 AM del día de recepción.")
@@ -498,7 +492,6 @@ if menu == "Booking":
                                         st.success("¡Datos del booking actualizados con éxito!")
                                         st.rerun()
 
-                        # Opción para mover de día
                         with st.expander("⚙️ Mover de día"):
                             if bloquear_por_tiempo_compras:
                                 st.warning("🔒 No puedes mover de día este booking porque ya pasaron las 8:00 AM del día de recepción.")
@@ -548,7 +541,6 @@ if menu == "Booking":
                                     st.success(f"¡Movido de {dia_origen} a {nuevo_dia} con éxito!")
                                     st.rerun()
 
-                        # Opción para eliminar del Booking
                         with st.expander("🗑️ Eliminar del Booking"):
                             if bloquear_por_tiempo_compras:
                                 st.warning("🔒 No puedes eliminar este booking después de las 8:00 AM del día de recepción.")
@@ -733,10 +725,12 @@ else:
             "recepcion_almacen",
             "fecha_recepcion",
             "hora_recepcion",
+            "usuario_recepcion",
             "observacion_almacen",
             "eliminado",
             "fecha_registro",
             "hora_registro",
+            "usuario_windows",
             "fecha_ultima_modificacion",
             "hora_ultima_modificacion",
         ]].copy()
@@ -752,10 +746,12 @@ else:
             "RECEPCION ALMACEN",
             "FECHA RECEPCION",
             "HORA RECEPCION",
+            "USUARIO RECEPCION",
             "OBSERVACIONES - ALMACEN",
             "ELIMINADO",
             "FECHA REGISTRO",
             "HORA REGISTRO",
+            "USUARIO REGISTRO",
             "FECHA ULTIMA MODIFICACION",
             "HORA ULTIMA MODIFICACION",
         ]

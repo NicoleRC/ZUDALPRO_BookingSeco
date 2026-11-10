@@ -147,7 +147,6 @@ PROVEEDORES_DISPONIBLES = cargar_proveedores()
 
 # Función para obtener la hora local ajustada a Venezuela (UTC-4) desde el servidor en la nube
 def obtener_ahora_local():
-    # Si el servidor corre en UTC, ajustamos restando 4 horas para Caracas
     return datetime.utcnow() - timedelta(hours=4)
 
 # Calcular fecha y hora actual local
@@ -302,7 +301,6 @@ if menu == "Booking":
                 df_a_tiempo = df_dia[df_dia["fuera_de_tiempo"] == 0]
                 df_tarde = df_dia[df_dia["fuera_de_tiempo"] == 1]
 
-                # Función común para renderizar las tarjetas con hora local ajustada
                 def renderizar_tarjeta(row, es_fuera_de_tiempo_grupo=False):
                     rec_val = bool(row["recepcion_almacen"])
                     obs_alm = row["observacion_almacen"] or ""
@@ -375,7 +373,7 @@ if menu == "Booking":
                             conn.close()
                             st.rerun()
 
-                        # Opción para editar detalles principales (Proveedor, Producto, OC, Familia, Obs Compras)
+                        # Opción para editar detalles principales
                         with st.expander("✏️ Editar Datos del Booking"):
                             if bloquear_por_tiempo_compras:
                                 st.warning("🔒 No puedes editar los datos de este booking porque ya pasaron las 8:00 AM del día de recepción.")
@@ -492,7 +490,6 @@ if menu == "Booking":
 
                         st.caption(texto_pie)
 
-                # Procesar registros a tiempo y tarde
                 for _, row in df_a_tiempo.iterrows():
                     renderizar_tarjeta(row, es_fuera_de_tiempo_grupo=False)
 
@@ -504,7 +501,7 @@ if menu == "Booking":
 
     st.divider()
 
-    # Formulario de Registro (Restringido para usuarios de Almacén)
+    # Formulario de Registro
     st.subheader("📝 Registrar Nueva Orden de Compra (Booking)")
 
     if es_autorizado:
@@ -597,7 +594,7 @@ if menu == "Booking":
                 st.rerun()
 
 # ---------------------------------------------------------
-# 3. VISTA: HISTÓRICO GENERAL Y REPORTES
+# 3. VISTA: HISTÓRICO GENERAL Y REPORTES (EXCEL REAL .XLSX)
 # ---------------------------------------------------------
 else:
     st.subheader("📊 Histórico General por Semana")
@@ -662,14 +659,15 @@ else:
             lambda x: "SI" if x == 1 else "NO"
         )
 
-        output = io.BytesIO()
-        with pd.ExcelWriter(output) as writer:
+        # Generar archivo Excel (.xlsx) real en memoria usando BytesIO y ExcelWriter
+        output_gen = io.BytesIO()
+        with pd.ExcelWriter(output_gen, engine="openpyxl") as writer:
             df_excel_gen.to_excel(writer, index=False, sheet_name=nombre_hoja)
-        excel_data = output.getvalue()
+        excel_data_gen = output_gen.getvalue()
 
         st.download_button(
             label=label_boton,
-            data=excel_data,
+            data=excel_data_gen,
             file_name=nombre_archivo,
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
